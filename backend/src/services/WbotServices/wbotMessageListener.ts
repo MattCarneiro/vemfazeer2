@@ -2257,11 +2257,11 @@ wbot.ev.on('messaging-history.set', async ({ messages }) => {
     // Obtém a mensagem do banco de dados para verificar o status do ticket
     const dbMessage = await Message.findOne({
       where: { id: message.key.id!, companyId },
-      include: [{ model: Ticket, as: 'Tickets' }]
+      include: [{ model: Ticket, as: 'ticket' }] // Use 'ticket' em vez de 'Tickets'
     });
 
     // Verifica se o ticket associado está "open"
-    if (dbMessage && dbMessage.Tickets.status === 'open') {
+    if (dbMessage && dbMessage.ticket.status === 'open') { // Use 'ticket' em vez de 'Tickets'
       await handleMessage(message, wbot, companyId);
       await verifyRecentCampaign(message, companyId);
       await verifyCampaignMessageAndCloseTicket(message, companyId);
