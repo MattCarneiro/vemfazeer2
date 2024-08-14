@@ -2245,17 +2245,27 @@ wbot.ev.on('messaging-history.set', async ({ messages }) => {
   const filteredMessages = messages.filter(filterMessages);
 
   for (const message of filteredMessages) {
-      const messageExists = await Message.count({
-          where: { id: message.key.id!, companyId }
-      });
-  
-      if (!messageExists) {
+    // Verifica se a mensagem já foi processada
+    const messageExists = await Message.count({
+      where: { id: message.key.id!, companyId }
+    });
 
-          await handleMessage(message, wbot, companyId);
-          await verifyRecentCampaign(message, companyId);
-          await verifyCampaignMessageAndCloseTicket(message, companyId);
-      
-      }
+    if (messageExists) {
+      continue;
+    }
+
+    // Obtém a mensagem do banco de dados para verificar o status do ticket
+    const dbMessage = await Message.findOne({
+      where: { id: message.key.id!, companyId },
+      include: [{ model: Ticket, as: 'Tickets' }]
+    });
+
+    // Verifica se o ticket associado está "open"
+    if (dbMessage && dbMessage.Tickets.status === 'open') {
+      await handleMessage(message, wbot, companyId);
+      await verifyRecentCampaign(message, companyId);
+      await verifyCampaignMessageAndCloseTicket(message, companyId);
+    }
   }
 });
     
