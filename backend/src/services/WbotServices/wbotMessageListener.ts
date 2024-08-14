@@ -2241,33 +2241,23 @@ const filterMessages = (msg: WAMessage): boolean => {
 const wbotMessageListener = async (wbot: Session, companyId: number): Promise<void> => {
   try {
 
-wbot.ev.on('messaging-history.set', async ({ messages }) => {
-  const filteredMessages = messages.filter(filterMessages);
+    wbot.ev.on('messaging-history.set', async ({ messages }) => {
+      const filteredMessages = messages.filter(filterMessages);
 
-  for (const message of filteredMessages) {
-    // Verifica se a mensagem já foi processada
-    const messageExists = await Message.count({
-      where: { id: message.key.id!, companyId }
-    });
-
-    if (messageExists) {
-      continue;
-    }
-
-    // Obtém a mensagem do banco de dados para verificar o status do ticket
-    const dbMessage = await Message.findOne({
-      where: { id: message.key.id!, companyId },
-      include: [{ model: Ticket, as: 'ticket' }] // Use 'ticket' em vez de 'Tickets'
-    });
-
-    // Verifica se o ticket associado está "open"
-    if (dbMessage && dbMessage.ticket.status === 'open') { // Use 'ticket' em vez de 'Tickets'
-      await handleMessage(message, wbot, companyId);
-      await verifyRecentCampaign(message, companyId);
-      await verifyCampaignMessageAndCloseTicket(message, companyId);
-    }
-  }
-});
+      for (const message of filteredMessages) {
+        const messageExists = await Message.count({
+          where: { id: message.key.id!, companyId }
+        });
+  
+        if (!messageExists) {
+          // Verificar se existe um ticket aberto para este contato
+          const ticket = await Ticket.findOne({
+            where: {
+              status: 'open',
+              contactId: message.key.remoteJid,
+              companyId
+            }
+          });
     
     wbot.ev.on("messages.upsert", async (messageUpsert: ImessageUpsert) => {
       const messages = messageUpsert.messages
