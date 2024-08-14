@@ -2240,7 +2240,6 @@ const filterMessages = (msg: WAMessage): boolean => {
 
 const wbotMessageListener = async (wbot: Session, companyId: number): Promise<void> => {
   try {
-
     wbot.ev.on('messaging-history.set', async ({ messages }) => {
       const filteredMessages = messages.filter(filterMessages);
 
@@ -2258,6 +2257,16 @@ const wbotMessageListener = async (wbot: Session, companyId: number): Promise<vo
               companyId
             }
           });
+
+          // Só processa a mensagem se houver um ticket aberto
+          if (ticket) {
+            await handleMessage(message, wbot, companyId);
+            await verifyRecentCampaign(message, companyId);
+            await verifyCampaignMessageAndCloseTicket(message, companyId);
+          }
+        }
+      }
+    });
     
     wbot.ev.on("messages.upsert", async (messageUpsert: ImessageUpsert) => {
       const messages = messageUpsert.messages
